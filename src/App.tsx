@@ -1,120 +1,136 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
 import './App.css'
+import { CONTEXTS } from './data/contexts'
+import { projects, tasks } from './data/seed'
+import type { ContextId, EffortSize, Task } from './types/app'
+
+const selectedContextId: ContextId = 'home'
+const selectedEffortSize: EffortSize = 'small'
+const selectedTimeWindow = 15
+
+const taskCards = tasks.slice(0, 9)
+
+function getProject(task: Task) {
+  return projects.find((project) => project.id === task.projectId)
+}
 
 function App() {
-  const [count, setCount] = useState(0)
+  const selectedContext = CONTEXTS.find(
+    (context) => context.id === selectedContextId,
+  )
+  const selectedProjects = projects.filter(
+    (project) => project.contextId === selectedContextId,
+  )
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
+    <main className="app-shell">
+      <header className="top-bar">
         <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
+          <p className="eyebrow">DriftTime</p>
+          <h1>Here's what you could do.</h1>
         </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
+        <button className="shuffle-button" type="button">
+          Reshuffle
         </button>
-      </section>
+      </header>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+      <section className="controls" aria-label="Task filters">
+        <div className="control-group" aria-label="Context">
+          {CONTEXTS.map((context) => (
+            <button
+              className={
+                context.id === selectedContextId
+                  ? 'context-pill active'
+                  : 'context-pill'
+              }
+              key={context.id}
+              type="button"
+            >
+              <span aria-hidden="true">{context.icon}</span>
+              {context.name}
+            </button>
+          ))}
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
+
+        <div className="quick-controls">
+          <div className="select-card">
+            <span>Effort</span>
+            <strong>Small Bite</strong>
+          </div>
+          <div className="select-card">
+            <span>Time</span>
+            <strong>{selectedTimeWindow} minutes</strong>
+          </div>
         </div>
       </section>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      <section className="workspace">
+        <aside className="sidebar" aria-label="Projects">
+          <div className="sidebar-heading">
+            <span>{selectedContext?.name}</span>
+            <button type="button">Add project</button>
+          </div>
+
+          <div className="project-list">
+            {selectedProjects.map((project) => (
+              <article className="project-row" key={project.id}>
+                <span
+                  className="project-swatch"
+                  style={{ backgroundColor: project.color }}
+                  aria-hidden="true"
+                />
+                <div>
+                  <h2>{project.name}</h2>
+                  <p>
+                    {
+                      tasks.filter((task) => task.projectId === project.id)
+                        .length
+                    }{' '}
+                    tasks
+                  </p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </aside>
+
+        <section className="grid-panel" aria-label="Task grid">
+          <div className="grid-heading">
+            <div>
+              <p className="eyebrow">Today</p>
+              <h2>Small things that fit right now</h2>
+            </div>
+            <p>
+              {selectedEffortSize === 'small'
+                ? 'Easy entry points, no heroics required.'
+                : 'Pick one that fits the moment.'}
+            </p>
+          </div>
+
+          <div className="task-grid">
+            {taskCards.map((task) => {
+              const project = getProject(task)
+
+              return (
+                <article
+                  className="task-card"
+                  key={task.id}
+                  style={{ borderTopColor: project?.color }}
+                >
+                  <div>
+                    <p className="task-project">{project?.name}</p>
+                    <h3>{task.title}</h3>
+                  </div>
+                  <footer>
+                    <span>{task.durationMinutes} min</span>
+                    <span>{task.effortSize} bite</span>
+                  </footer>
+                </article>
+              )
+            })}
+          </div>
+        </section>
+      </section>
+    </main>
   )
 }
 
