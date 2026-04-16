@@ -2,6 +2,12 @@ export type ContextId = 'home' | 'work' | 'mind' | 'spirit' | 'body'
 
 export type EffortSize = 'small' | 'medium' | 'big'
 
+export type ContextFilter = ContextId | 'all'
+
+export type EffortFilter = EffortSize | 'any'
+
+export type TimeWindowFilter = number | 'any'
+
 export type AppContext = {
   id: ContextId
   name: string
@@ -28,4 +34,17 @@ export type Task = {
   completedAt?: string | null
   createdAt: string
   lastShownAt?: string | null
+}
+
+export type Preferences = {
+  selectedContextId: ContextFilter
+  selectedEffortSize: EffortFilter
+  selectedTimeWindow: TimeWindowFilter
+  pinnedTaskIds: string[]
+}
+
+export type AppState = {
+  projects: Project[]
+  tasks: Task[]
+  preferences: Preferences
 }

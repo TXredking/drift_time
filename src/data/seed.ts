@@ -1,4 +1,5 @@
-import type { Project, Task } from '../types/app'
+import { DEFAULT_PREFERENCES } from '../lib/constants'
+import type { AppState, Project, Task } from '../types/app'
 
 export const projects: Project[] = [
   {
@@ -133,4 +134,82 @@ export const tasks: Task[] = [
     archived: false,
     createdAt: '2026-04-16T00:00:00.000Z',
   },
+  {
+    id: 'task-wipe-sink',
+    projectId: 'home-kitchen',
+    title: 'Wipe the sink and faucet',
+    durationMinutes: 15,
+    effortSize: 'medium',
+    archived: false,
+    createdAt: '2026-04-16T00:00:00.000Z',
+  },
+  {
+    id: 'task-laundry',
+    projectId: 'home-reset',
+    title: 'Start one load of laundry',
+    durationMinutes: 30,
+    effortSize: 'medium',
+    archived: false,
+    createdAt: '2026-04-16T00:00:00.000Z',
+  },
+  {
+    id: 'task-plan-meal',
+    projectId: 'home-kitchen',
+    title: 'Choose one easy dinner',
+    durationMinutes: 15,
+    effortSize: 'medium',
+    archived: false,
+    createdAt: '2026-04-16T00:00:00.000Z',
+  },
+  {
+    id: 'task-sort-mail',
+    projectId: 'home-reset',
+    title: 'Sort one pile of mail',
+    durationMinutes: 20,
+    effortSize: 'medium',
+    archived: false,
+    createdAt: '2026-04-16T00:00:00.000Z',
+  },
+  {
+    id: 'task-clean-fridge-shelf',
+    projectId: 'home-kitchen',
+    title: 'Clear one fridge shelf',
+    durationMinutes: 45,
+    effortSize: 'big',
+    archived: false,
+    createdAt: '2026-04-16T00:00:00.000Z',
+  },
+  {
+    id: 'task-reset-floor',
+    projectId: 'home-reset',
+    title: 'Reset one room floor',
+    durationMinutes: 60,
+    effortSize: 'big',
+    archived: false,
+    createdAt: '2026-04-16T00:00:00.000Z',
+  },
+  {
+    id: 'task-review-inbox',
+    projectId: 'work-admin',
+    title: 'Review inbox for next actions',
+    durationMinutes: 30,
+    effortSize: 'medium',
+    archived: false,
+    createdAt: '2026-04-16T00:00:00.000Z',
+  },
+  {
+    id: 'task-write-status',
+    projectId: 'work-admin',
+    title: 'Draft one status update',
+    durationMinutes: 45,
+    effortSize: 'big',
+    archived: false,
+    createdAt: '2026-04-16T00:00:00.000Z',
+  },
 ]
+
+export const defaultAppState: AppState = {
+  projects,
+  tasks,
+  preferences: DEFAULT_PREFERENCES,
+}

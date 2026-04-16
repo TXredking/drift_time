@@ -27,7 +27,13 @@
   margin: 0;
 }
 
+.top-actions {
+  display: flex;
+  gap: 10px;
+}
+
 .shuffle-button,
+.reset-button,
 .sidebar-heading button,
 .context-pill {
   border: 1px solid var(--border);
@@ -42,6 +48,14 @@
   font-weight: 700;
   min-height: 48px;
   padding: 0 22px;
+}
+
+.reset-button {
+  background: white;
+  color: var(--ink);
+  font-weight: 700;
+  min-height: 48px;
+  padding: 0 18px;
 }
 
 .controls {
@@ -95,16 +109,27 @@
   padding: 10px 14px;
 }
 
-.select-card span {
+.select-card label {
   color: var(--muted);
   display: block;
   font-size: 0.78rem;
   margin-bottom: 2px;
 }
 
-.select-card strong {
+.select-card select {
+  appearance: none;
+  background: transparent;
+  border: 0;
   color: var(--ink);
+  cursor: pointer;
   font-size: 0.95rem;
+  font-weight: 800;
+  width: 100%;
+}
+
+.select-card select:focus-visible {
+  outline: 3px solid #d2a13e;
+  outline-offset: 4px;
 }
 
 .workspace {
@@ -251,6 +276,16 @@
   text-transform: capitalize;
 }
 
+.placeholder-card {
+  background: #f5f8f7;
+  border-top-color: #b8c7c1;
+  box-shadow: none;
+}
+
+.placeholder-card h3 {
+  color: #52615d;
+}
+
 button:hover {
   transform: translateY(-1px);
 }
@@ -270,6 +305,11 @@ button:focus-visible {
   .grid-heading {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .top-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
   }
 
   .workspace {
