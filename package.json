@@ -1,7 +1,13 @@
 {
   "name": "drift-time",
-  "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "description": "A local task activation tool that helps you choose something doable without opening a long to-do list.",
+  "license": "MIT",
+  "author": "Rory McLaughlin",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TXredking/drift_time.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",

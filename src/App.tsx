@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { version } from '../package.json'
 import './App.css'
 import { CONTEXTS } from './data/contexts'
 import {
@@ -857,6 +858,9 @@ function App() {
           </section>
         </section>
       </section>
+      <footer className="app-footer">
+        <span>v{version}</span>
+      </footer>
     </main>
   )
 }
