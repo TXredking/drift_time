@@ -99,12 +99,14 @@ V1 supports short, fixed time windows:
 - 30 minutes
 - 45 minutes
 - 60 minutes
-- 90 minutes
-- 120 minutes
+
+90 and 120 minutes are excluded. They are unrealistic as activation-focused time slots and push the app toward project planning rather than task execution.
 
 The grid should show tasks whose estimated duration is less than or equal to the selected time window. Exact matching is too brittle.
 
 ## Main Grid
+
+The task grid is the primary workspace. The layout should treat it as the center of attention — not a panel embedded in a management interface. When the user is in execution mode, nothing should compete with the grid for focus.
 
 The main screen displays 9 grid slots. Each populated task card should show:
 
@@ -120,8 +122,20 @@ Grid behavior:
 - Archived tasks are excluded.
 - Tasks are filtered by selected context, effort size, and time window.
 - If fewer than 9 eligible tasks exist, remaining cells use supportive placeholders.
-- The user can mark a task done from the card or task detail.
+- The user can mark a task done from the card.
 - Done tasks are archived immediately.
+
+### Task card interaction
+
+Clicking a task card opens a card modal. The modal opens in read mode and shows full task details including notes. It contains:
+
+- Edit button — switches the modal to edit mode (title, notes, project, duration, effort size)
+- Done button — archives the task with a completion timestamp and closes the modal
+- Archive button — archives the task without a completion timestamp and closes the modal
+
+A tooltip on the Archive button explains the distinction: "Archive removes this task from your active list without marking it complete."
+
+The same modal can be opened from the task list inside the project modal, so users can find and edit a specific task without relying on the shuffle to surface it.
 
 Supportive placeholders may include:
 
@@ -174,6 +188,26 @@ V1 should support:
 - View archived/completed tasks
 
 V1 should avoid requiring users to fully decompose a big vague task before saving it. A rough task can be captured and clarified later.
+
+### Project sidebar
+
+The left sidebar lists projects in the selected context. It is collapsible so users in execution mode can dismiss it and focus entirely on the task grid.
+
+Clicking a project in the sidebar opens a project modal — it does not scroll the page or reveal an inline panel below the sidebar. This keeps the purpose of the sidebar clear: project selection triggers a modal, not a below-the-fold content change the user might miss.
+
+The project modal contains:
+
+- Project name and color edit fields
+- Archive project button
+- Full list of the project's active tasks
+- Add task button
+- Each task in the list is clickable and opens the task card modal
+
+### Project sidebar collapse behavior
+
+- A toggle button (chevron or similar) collapses the sidebar to a narrow icon rail or hides it entirely.
+- Collapsed state persists in preferences across sessions.
+- Collapsing does not change the selected context or affect the grid.
 
 ## Starter Data
 
@@ -247,11 +281,21 @@ Avoid:
 - Collaboration
 - Time tracking
 - Subtasks
-- Recurring task scheduling UI
+- Recurring tasks
 - AI task breakdown
 - Drag-and-drop
 - Analytics dashboards
 - Priority matrices or complex scoring UI
+
+## Recurring Tasks — Design Rationale
+
+Recurring tasks are explicitly out of scope for V1, and the reasons are worth documenting to handle future requests clearly.
+
+DriftTime is a progress tool, not a maintenance tracker. Recurring tasks — cleaning, watering plants, weekly reviews — have no end state. They are not suited to this app's model of making progress toward a project's definition of done.
+
+Some projects appear to have repeatable steps (e.g. "Learn Calculus" → "Do a lesson"). But even those are not truly recurring: lesson content changes with each session, and with a mastery-focused approach a given concept might need initial instruction, review, or practice — different task types entirely. The right model is to break those into discrete, concrete tasks with a clear exit condition (e.g. "Pass chapter 3 practice test"), not to clone a recurring task.
+
+If a user requests recurring tasks, the appropriate response is to help them break down the project into specific, completable tasks. That is the usage pattern this app is designed to encourage.
 
 ## Future Ideas
 
@@ -262,7 +306,6 @@ These are possible later, but should not block V1:
 - Task exposure history to identify avoided tasks.
 - Weighted selection based on age, skipped appearances, and recent completions.
 - Context reminders or time-window reminders.
-- Recurring task copying.
 - Native or PWA packaging.
 
 ## Success Criteria

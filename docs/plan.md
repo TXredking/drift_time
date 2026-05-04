@@ -103,6 +103,7 @@ export type Preferences = {
   selectedEffortSize: EffortSize;
   selectedTimeWindow: number;
   pinnedTaskIds: string[];
+  sidebarCollapsed: boolean;
 };
 
 export type AppState = {
@@ -129,7 +130,7 @@ export const CONTEXTS = [
 Create time windows and effort labels in a small constants file or near the controls:
 
 ```ts
-export const TIME_WINDOWS = [5, 15, 30, 45, 60, 90, 120] as const;
+export const TIME_WINDOWS = [5, 15, 30, 45, 60] as const;
 export const EFFORT_SIZES = ["small", "medium", "big"] as const;
 ```
 
@@ -139,8 +140,8 @@ Implement `src/lib/storage.ts`:
 
 - `loadAppState(): AppState`
 - `saveAppState(state: AppState): void`
-- `exportAppState(state: AppState): string`
-- `parseImportedAppState(json: string): AppState`
+- `exportAppState(state: AppState): void` — triggers a file download
+- `parseImportedAppState(json: string): AppState | null` — returns null on invalid input
 
 Storage rules:
 
@@ -217,9 +218,9 @@ No Redux, Zustand, React Query, or router is needed for V1.
 Desktop layout:
 
 - Top control bar.
-- Left project sidebar.
-- Main task grid.
-- Optional right-side editing panel or modal.
+- Left project sidebar (collapsible).
+- Main task grid — primary workspace, always front and center.
+- Modals for project management and task detail/editing.
 
 ### ContextTabs
 
@@ -254,42 +255,41 @@ The layout should not jump during shuffle, hover, pinning, or completion.
 
 ### TaskCard
 
-Shows task title, duration, effort size, and a project cue. Includes:
+Shows task title, duration, effort size, and a project cue. Includes a pin/unpin toggle visible on hover.
 
-- Done action
-- Pin/unpin action
-- Edit/open action
+Clicking the card opens the task card modal.
 
-Done action:
+The task card modal opens in read mode. It contains:
 
-- Sets `archived: true`
-- Sets `completedAt` to current ISO timestamp
-- Removes task from pinned ids
-- Regenerates grid
+- Full title and notes (read mode)
+- Edit button — switches to edit mode (title, notes, project, duration, effort size)
+- Done button — sets `archived: true`, sets `completedAt` to current ISO timestamp, removes from pinned ids, regenerates grid, closes modal
+- Archive button — sets `archived: true`, leaves `completedAt` null, removes from pinned ids, regenerates grid, closes modal
+- Tooltip on Archive button: "Archive removes this task from your active list without marking it complete."
 
 ### ProjectSidebar
 
-Shows projects in the selected context. Supports:
+Shows projects in the selected context. Collapsible via a toggle button; collapsed state persists in preferences.
 
-- Add project
-- Edit project
-- Archive project
-- Select project for task management
+Clicking a project opens the project modal — does not reveal inline content below the sidebar fold.
+
+The project modal contains:
+
+- Project name and color edit fields
+- Archive project button
+- List of active tasks for the project, each clickable to open the task card modal
+- Add task button
 
 ### TaskForm
 
-Supports:
+Used inside the task card modal in edit mode. Fields:
 
-- Add task
-- Edit task
 - Title
-- Notes
+- Notes (optional)
 - Project
 - Duration
 - Effort size
-- Archive/unarchive
-
-Do not require notes.
+- Archive/unarchive toggle
 
 ### ArchivePanel
 
@@ -300,9 +300,28 @@ V1 should include a simple way to see archived tasks and optionally restore them
 Support:
 
 - Download/export JSON.
-- Import JSON from file input or pasted text.
+- Import JSON from a file picker.
 
 Import should confirm before replacing current local state.
+
+#### Export steps
+
+1. Call `JSON.stringify(state, null, 2)` to produce readable JSON.
+2. Wrap in a `Blob` with `type: 'application/json'`.
+3. Create a temporary object URL via `URL.createObjectURL`.
+4. Create a hidden `<a>` element, set `href` to the object URL and `download` to a filename such as `drifttime-backup-YYYY-MM-DD.json`.
+5. Programmatically click the anchor to trigger the browser download dialog.
+6. Revoke the object URL and remove the anchor element immediately after.
+
+#### Import steps
+
+1. Render a visually hidden `<input type="file" accept=".json">` and wire a visible "Import" button to open it via `.click()`.
+2. On `change`, read the selected file using `FileReader.readAsText`.
+3. On `load`, call `parseImportedAppState` which runs `JSON.parse` wrapped in try/catch and validates the result with `isAppState`.
+4. If parsing fails, show an inline error message — do not modify state.
+5. If parsing succeeds, show a confirmation prompt: "This will replace all your current data. Continue?"
+6. On confirm, call `saveAppState` with the imported state, then call the state setter to update React state in place — no full page reload required.
+7. Clear the file input value so the same file can be re-imported if needed.
 
 ## Styling Direction
 
@@ -341,6 +360,46 @@ Acceptance:
 - `npm run dev` starts the app.
 - The browser shows a recognizable DriftTime workspace with seeded task cards.
 
+### Milestone 1.5: UX Design Revision
+
+Design decisions locked in after initial beta feedback. These changes affect how subsequent milestones are implemented — review before starting M2.
+
+**Time windows revised:**
+
+- Remove 90 and 120 minutes from `TIME_WINDOWS`.
+- Correct constant: `[5, 15, 30, 45, 60]`.
+
+**Sidebar collapsible:**
+
+- The left project sidebar must be collapsible.
+- Add `sidebarCollapsed: boolean` to the `Preferences` type so collapse state persists across sessions.
+- A toggle control (chevron or icon button) collapses the sidebar to a narrow rail or hides it entirely.
+- Collapsed state does not affect context, grid, or any other preference.
+
+**Modal-first management pattern:**
+
+- Clicking a project in the sidebar opens a project modal — not an inline panel or below-fold section.
+- The project modal contains: project name/color edit, archive button, active task list, add task button.
+- Each task in the project modal list is clickable and opens the task card modal.
+- Clicking a task card in the grid also opens the task card modal.
+- The task card modal opens in read mode and exposes: Edit (switches to edit mode), Done, Archive.
+
+**Archive vs Done distinction:**
+
+- Done: sets `archived: true` and `completedAt` to current timestamp.
+- Archive: sets `archived: true`, leaves `completedAt` null.
+- A tooltip on the Archive button reads: "Archive removes this task from your active list without marking it complete."
+
+**No recurring tasks:**
+
+- Do not implement recurring tasks in any milestone. See spec for rationale.
+
+Acceptance:
+
+- `TIME_WINDOWS` constant matches `[5, 15, 30, 45, 60]`.
+- `Preferences` type includes `sidebarCollapsed`.
+- Design pattern is agreed and reflected in component plan before M2 begins.
+
 ### Milestone 2: Filtering And Shuffle
 
 - Add context, effort, and time controls.
@@ -358,45 +417,60 @@ Acceptance:
 
 - Add localStorage load/save.
 - Persist preferences, projects, tasks, and pinned ids.
+- Persist `sidebarCollapsed` in preferences.
 
 Acceptance:
 
 - Refreshing the browser keeps data and preferences.
+- Sidebar collapsed/expanded state survives a refresh.
 
 ### Milestone 4: Project And Task CRUD
 
-- Add project form.
-- Add task form.
-- Edit and archive projects/tasks.
+- Build collapsible project sidebar with toggle control.
+- Build project modal (name/color edit, archive, task list, add task).
+- Build task card modal (read mode → edit mode, Done button, Archive button with tooltip).
+- Edit and archive projects/tasks through their respective modals.
 - Show archived task view.
 
 Acceptance:
 
+- Clicking a project in the sidebar opens the project modal, not an inline panel.
+- Clicking a task card in the grid opens the task card modal.
+- Tasks are also accessible from the task list inside the project modal.
+- Done and Archive produce distinct outcomes (completedAt set vs null).
+- Tooltip is visible on the Archive button.
 - User can create a new project and task, then see the task appear when filters match.
 
 ### Milestone 5: Complete And Pin
 
-- Add done action.
-- Add pin/unpin.
-- Ensure completed tasks archive and leave the active grid.
+- Wire Done and Archive actions in the task card modal.
+- Add pin/unpin toggle on task cards (visible on hover).
+- Ensure completed tasks leave the active grid and appear in the archive view.
+- Ensure archived-without-completion tasks also leave the active grid.
 - Ensure pinned tasks survive reshuffle while still eligible.
 
 Acceptance:
 
-- Done task disappears from active grid and is visible in archive.
+- Done task disappears from active grid and is visible in archive with a completion timestamp.
+- Archived task disappears from active grid and is visible in archive without a completion timestamp.
 - Pinned task remains during reshuffle.
 
 ### Milestone 6: Export, Import, Polish
 
-- Add JSON export.
-- Add JSON import with confirmation.
+- Add `exportAppState` to `storage.ts` — serializes state to JSON and triggers a browser file download.
+- Add `parseImportedAppState` to `storage.ts` — parses and validates JSON, returns `null` on failure.
+- Build `ImportExportControls` component with an Export button and an Import button backed by a hidden file input.
+- Show an inline error if imported JSON is invalid or unrecognized.
+- Show a confirmation prompt before overwriting local state on import.
 - Add shuffle animation.
 - Add reduced motion support.
 - Improve empty states and microcopy.
 
 Acceptance:
 
-- User can back up and restore data.
+- Export downloads a readable JSON file named with today's date.
+- Importing a valid backup restores all projects, tasks, and preferences without a page reload.
+- Importing a bad file shows an error and leaves existing data untouched.
 - Shuffle feels pleasant but not distracting.
 
 ## Testing Checklist
@@ -452,3 +526,46 @@ Do not implement these during V1 unless the spec changes:
 10. Polish styling, accessibility, and reduced motion.
 
 Keep each step working before moving to the next. DriftTime should stay small enough that the whole app can be understood by reading the `src` folder.
+
+## Beta Test Deploy Plan
+
+### Goal
+
+Share a working build with non-technical testers via a stable URL, with no local setup required on their end.
+
+### Prerequisites
+
+- Milestone 6 complete (export/import implemented and tested locally).
+- `npm run build` produces a clean `dist/` folder with no TypeScript or lint errors.
+
+### Deploy method: Netlify drag-and-drop
+
+Netlify's drop UI requires no account on the tester's side and no config files in the repo.
+
+1. Run `npm run build` locally to produce the `dist/` folder.
+2. Go to [netlify.com/drop](https://app.netlify.com/drop) in a browser (free Netlify account required for the host, not the tester).
+3. Drag the `dist/` folder onto the drop target.
+4. Netlify generates a unique URL (e.g. `https://random-name.netlify.app`).
+5. Share that URL with testers — no install, no terminal.
+
+To update the build after changes: repeat steps 1–3. Netlify lets you re-deploy to the same site by dragging to the existing site's deploy page, preserving the URL.
+
+For continuous deployment from GitHub (optional upgrade): connect the repo in the Netlify dashboard, set build command to `npm run build` and publish directory to `dist`. Pushes to `main` will redeploy automatically.
+
+### Tester data workflow
+
+Because each tester's data lives in their own browser's localStorage, data is not shared or synced between testers. The export/import feature is how testers preserve their data.
+
+Guidance to give testers:
+
+- Use the Export button periodically to save a backup `.json` file to their computer.
+- If they switch browsers or clear site data, they can use Import to restore from that file.
+- They can also send their export file to you directly as a way to share feedback alongside real usage data.
+
+### What testers cannot do
+
+- Share data with each other in real time.
+- Access their data from a different browser or device without manually exporting and importing.
+- Recover data if they clear localStorage without first exporting.
+
+These are acceptable constraints for a V1 beta. If they become friction points, the next option is a lightweight cloud sync layer — out of scope for now.
