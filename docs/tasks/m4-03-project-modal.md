@@ -4,11 +4,13 @@
 **PR:** 3 of 3  
 **Scope:** Large — replaces inline task manager with a modal, changes project click behavior, removes derived state
 
-**Prerequisite:** M4-02 must be merged first. The project modal's task list opens the task card modal introduced in that task.
+**Prerequisite:** M4-02 must be merged first. The project modal's task list opens the task card modal introduced in that task, and `@radix-ui/react-dialog` will already be installed.
 
 ## Goal
 
 Clicking a project in the sidebar opens a modal instead of expanding the inline task manager below the grid. The modal contains the project's edit fields, archive button, active task list, and add task button. The entire `.task-manager` section is removed from the grid panel.
+
+**Radix UI:** Uses `@radix-ui/react-dialog` (installed in M4-02) for the modal. Same benefits as the task card modal: focus trap, Escape key, ARIA, body scroll lock.
 
 ## Files changed
 
@@ -18,6 +20,14 @@ Clicking a project in the sidebar opens a modal instead of expanding the inline 
 ---
 
 ## Implementation
+
+### `src/App.tsx` — imports
+
+`@radix-ui/react-dialog` is already installed. Add the import if not already present at the top of the file:
+
+```ts
+import * as Dialog from '@radix-ui/react-dialog'
+```
 
 ### `src/App.tsx` — state changes
 
@@ -45,7 +55,7 @@ const selectedProjectTasks = selectedProject
   : []
 ```
 
-Add a derived value for the project modal:
+Add derived values for the project modal:
 
 ```ts
 const activeProject = activeProjectId
@@ -60,9 +70,7 @@ const activeProjectTasks = activeProject
 
 ### `src/App.tsx` — update existing functions
 
-`openAddProjectForm` — no change needed to the function body, but after the project is saved, set `activeProjectId` instead of `selectedProjectId`.
-
-`saveProject` — replace the `setSelectedProjectId` call:
+**`saveProject`** — replace `setSelectedProjectId` with `setActiveProjectId` so the project modal stays open after saving:
 
 ```ts
 function saveProject(event: FormEvent<HTMLFormElement>) {
@@ -92,12 +100,12 @@ function saveProject(event: FormEvent<HTMLFormElement>) {
       ]
 
   commitAppState({ ...appState, projects: nextProjects })
-  setActiveProjectId(projectForm.id ?? newProjectId)  // was setSelectedProjectId
+  setActiveProjectId(projectForm.id ?? newProjectId)
   setProjectForm(null)
 }
 ```
 
-`archiveProject` — close both modals on archive:
+**`archiveProject`** — close both modals on archive:
 
 ```ts
 function archiveProject(projectId: string) {
@@ -116,13 +124,13 @@ function archiveProject(projectId: string) {
   }
 
   commitAppState(nextState)
-  setActiveProjectId(null)   // close project modal
+  setActiveProjectId(null)
   setProjectForm(null)
   setTaskForm(null)
 }
 ```
 
-`openAddTaskForm` — use `activeProjectId` instead of `selectedProject`:
+**`openAddTaskForm`** — use `activeProjectId` instead of `selectedProject`:
 
 ```ts
 function openAddTaskForm() {
@@ -131,7 +139,7 @@ function openAddTaskForm() {
 }
 ```
 
-`saveTask` — remove the `setSelectedProjectId` call. For a new task there is no task card modal to keep open, so just clear the form. For an edit the task card modal (from M4-02) stays open because `activeTaskId` is still set.
+**`saveTask`** — remove the `setSelectedProjectId` call. For new tasks, `taskForm` clears and the project modal stays open via `activeProjectId`. For edits, the task card modal (from M4-02) stays open via `activeTaskId`.
 
 ```ts
 function saveTask(event: FormEvent<HTMLFormElement>) {
@@ -172,13 +180,12 @@ function saveTask(event: FormEvent<HTMLFormElement>) {
 
   commitAppState({ ...appState, tasks: nextTasks })
   setTaskForm(null)
-  // No setSelectedProjectId — project modal stays open via activeProjectId
 }
 ```
 
 ### `src/App.tsx` — sidebar project list
 
-Change click handler to open the modal instead of setting `selectedProjectId`. Remove the active-row highlight (no longer needed without the inline manager):
+Change click handler to open the modal. Remove `row-actions` (Edit and Archive move into the project modal) and remove the active-row highlight:
 
 ```tsx
 <div className="project-list">
@@ -211,52 +218,47 @@ Change click handler to open the modal instead of setting `selectedProjectId`. R
 </div>
 ```
 
-The Edit and Archive buttons that were in `row-actions` move into the project modal, so remove them from the project row here.
-
 ### `src/App.tsx` — remove inline task manager
 
-Delete the entire `.task-manager` section from the grid panel JSX. This is the `<section className="task-manager">` block that contained the task manager heading, task form, task list, and archive panel.
+Delete the entire `<section className="task-manager">` block from the grid panel. This block contained the task manager heading, task form, task list, and archive panel. All of this moves into the project modal.
 
-The archive panel and task list are replaced by the project modal. The archive panel (`archivedTasks`) will be addressed in M5 polish as a standalone view if needed.
+The archive panel (`archivedTasks`) will be addressed in M5 as a standalone accessible view.
 
 ### `src/App.tsx` — project modal JSX
 
-Add after the task card modal (from M4-02), before the closing `</main>`:
+Add after the task card modal Dialog (from M4-02), still inside `<Tooltip.Provider>` and `<main>`:
 
 ```tsx
-{activeProject && (
-  <div
-    className="modal-overlay"
-    onClick={(event) => {
-      if (event.target === event.currentTarget) setActiveProjectId(null)
-    }}
-  >
-    <div
-      className="modal project-modal"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="project-modal-title"
-    >
+<Dialog.Root
+  open={activeProject !== null}
+  onOpenChange={(open) => {
+    if (!open) {
+      setActiveProjectId(null)
+      setProjectForm(null)
+      setTaskForm(null)
+    }
+  }}
+>
+  <Dialog.Portal>
+    <Dialog.Overlay className="modal-overlay" />
+    <Dialog.Content className="modal project-modal">
       <div className="modal-header">
         <span
           className="project-swatch"
-          style={{ backgroundColor: activeProject.color }}
+          style={{ backgroundColor: activeProject?.color }}
           aria-hidden="true"
         />
-        <h2 id="project-modal-title" className="modal-title">
-          {activeProject.name}
-        </h2>
-        <button
-          aria-label="Close"
-          className="modal-close"
-          onClick={() => setActiveProjectId(null)}
-          type="button"
-        >
-          ✕
-        </button>
+        <Dialog.Title className="modal-title">
+          {activeProject?.name}
+        </Dialog.Title>
+        <Dialog.Close asChild>
+          <button aria-label="Close" className="modal-close" type="button">
+            ✕
+          </button>
+        </Dialog.Close>
       </div>
 
-      {projectForm?.id === activeProject.id ? (
+      {activeProject && projectForm?.id === activeProject.id ? (
         /* Edit mode */
         <form className="editor-form wide" onSubmit={saveProject}>
           <label>
@@ -312,7 +314,7 @@ Add after the task card modal (from M4-02), before the closing `</main>`:
             </button>
           </div>
         </form>
-      ) : (
+      ) : activeProject ? (
         /* Read mode */
         <div className="modal-body">
           <div className="project-modal-actions">
@@ -322,15 +324,12 @@ Add after the task card modal (from M4-02), before the closing `</main>`:
             >
               Edit project
             </button>
-            <button
-              onClick={() => archiveProject(activeProject.id)}
-              type="button"
-            >
+            <button onClick={() => archiveProject(activeProject.id)} type="button">
               Archive project
             </button>
           </div>
         </div>
-      )}
+      ) : null}
 
       <section className="project-modal-tasks">
         <div className="project-modal-tasks-heading">
@@ -341,7 +340,6 @@ Add after the task card modal (from M4-02), before the closing `</main>`:
         </div>
 
         {taskForm && !taskForm.id ? (
-          /* Inline new-task form inside project modal */
           <form className="editor-form" onSubmit={saveTask}>
             <label>
               Task title
@@ -436,9 +434,9 @@ Add after the task card modal (from M4-02), before the closing `</main>`:
           <p className="empty-note">No active tasks. Add one above.</p>
         )}
       </section>
-    </div>
-  </div>
-)}
+    </Dialog.Content>
+  </Dialog.Portal>
+</Dialog.Root>
 ```
 
 ### `src/App.css`
@@ -508,6 +506,8 @@ The project modal shares `.modal-overlay` and `.modal` styles from M4-02. Add pr
 - Archive project button archives the project and closes the modal.
 - Active tasks for the project are listed; clicking a task opens the task card modal (from M4-02).
 - Add task button shows the new-task form inside the project modal; saving adds the task to the list.
+- Pressing Escape closes the project modal.
 - Clicking the overlay backdrop closes the project modal.
+- Focus is trapped inside the project modal while it is open.
 - The inline task manager section below the grid is gone.
-- No `project-row active` highlight remains in the sidebar (the modal replaces selection state).
+- No `project-row active` highlight remains in the sidebar.

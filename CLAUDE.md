@@ -32,3 +32,14 @@ DriftTime uses semantic versioning (`MAJOR.MINOR.PATCH`) in `package.json` and g
 - No external state library — React state in `App.tsx` only.
 - No routing — single screen with modals and panels.
 - Save after every meaningful state change via `useEffect` watching `appState`.
+
+## Dependencies
+
+Prefer keeping the dependency surface small. Before adding any library or framework, weigh the concrete benefits (standardisation, accessibility, functionality, code reduction) against the costs (bundle size, maintenance burden, security exposure, added complexity).
+
+If a dependency clears that bar, add it. If the tradeoff is unclear, **ask before adding**.
+
+Current approved dependencies beyond the Vite + React + TypeScript scaffold:
+
+- `@radix-ui/react-dialog` — headless dialog primitive; provides focus trapping, Escape key handling, and ARIA without requiring a CSS framework.
+- `@radix-ui/react-tooltip` — headless tooltip primitive; used for the Archive button explanation in task modals.
