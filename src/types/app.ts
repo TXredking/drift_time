@@ -41,6 +41,7 @@ export type Preferences = {
   selectedEffortSize: EffortFilter
   selectedTimeWindow: TimeWindowFilter
   pinnedTaskIds: string[]
+  sidebarCollapsed: boolean
 }
 
 export type AppState = {

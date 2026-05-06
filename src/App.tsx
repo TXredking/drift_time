@@ -172,6 +172,16 @@ function App() {
     })
   }
 
+  function toggleSidebar() {
+    setAppState((current) => ({
+      ...current,
+      preferences: {
+        ...current.preferences,
+        sidebarCollapsed: !current.preferences.sidebarCollapsed,
+      },
+    }))
+  }
+
   function resetFilters() {
     setAppState((currentState) => {
       const nextState = {
@@ -489,16 +499,45 @@ function App() {
         </div>
       </section>
 
-      <section className="workspace">
-        <aside className="sidebar" aria-label="Projects">
+      <section
+        className={
+          appState.preferences.sidebarCollapsed
+            ? 'workspace sidebar-collapsed'
+            : 'workspace'
+        }
+      >
+        <aside
+          className={
+            appState.preferences.sidebarCollapsed ? 'sidebar collapsed' : 'sidebar'
+          }
+          aria-label="Projects"
+        >
           <div className="sidebar-heading">
-            <span>{selectedContextLabel}</span>
-            <button onClick={openAddProjectForm} type="button">
-              Add project
-            </button>
+            {!appState.preferences.sidebarCollapsed && (
+              <span>{selectedContextLabel}</span>
+            )}
+            <div className="sidebar-heading-actions">
+              {!appState.preferences.sidebarCollapsed && (
+                <button onClick={openAddProjectForm} type="button">
+                  Add project
+                </button>
+              )}
+              <button
+                aria-label={
+                  appState.preferences.sidebarCollapsed
+                    ? 'Expand sidebar'
+                    : 'Collapse sidebar'
+                }
+                className="sidebar-toggle"
+                onClick={toggleSidebar}
+                type="button"
+              >
+                {appState.preferences.sidebarCollapsed ? '›' : '‹'}
+              </button>
+            </div>
           </div>
 
-          {projectForm ? (
+          {!appState.preferences.sidebarCollapsed && projectForm ? (
             <form className="editor-form" onSubmit={saveProject}>
               <label>
                 Project name
@@ -569,7 +608,7 @@ function App() {
             </form>
           ) : null}
 
-          <div className="project-list">
+          {!appState.preferences.sidebarCollapsed && <div className="project-list">
             {selectedProjects.map((project) => (
               <article
                 className={
@@ -615,7 +654,7 @@ function App() {
                 </div>
               </article>
             ))}
-          </div>
+          </div>}
         </aside>
 
         <section className="grid-panel" aria-label="Task grid">

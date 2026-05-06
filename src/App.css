@@ -154,6 +154,10 @@
   max-width: 1320px;
 }
 
+.workspace.sidebar-collapsed {
+  grid-template-columns: 2.75rem minmax(0, 1fr);
+}
+
 .sidebar,
 .grid-panel {
   background: rgba(255, 255, 255, 0.82);
@@ -163,6 +167,12 @@
 
 .sidebar {
   padding: 18px;
+  transition: width 0.15s ease;
+}
+
+.sidebar.collapsed {
+  overflow: hidden;
+  padding: 10px;
 }
 
 .sidebar-heading {
@@ -170,6 +180,30 @@
   display: flex;
   justify-content: space-between;
   margin-bottom: 14px;
+}
+
+.sidebar-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.sidebar-toggle {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  min-height: auto;
+  padding: 4px 8px;
+}
+
+.sidebar-toggle:hover {
+  border-color: var(--border);
 }
 
 .sidebar-heading span {

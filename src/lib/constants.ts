@@ -14,6 +14,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   selectedEffortSize: 'any',
   selectedTimeWindow: 'any',
   pinnedTaskIds: [],
+  sidebarCollapsed: false,
 }
 
 export const PLACEHOLDERS = [
