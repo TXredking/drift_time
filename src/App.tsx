@@ -105,9 +105,7 @@ function App() {
     markTasksShown(initialState, initialGridTaskIds),
   )
   const [gridTaskIds, setGridTaskIds] = useState<string[]>(initialGridTaskIds)
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
-    null,
-  )
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
   const [projectForm, setProjectForm] = useState<ProjectFormState | null>(null)
   const [taskForm, setTaskForm] = useState<TaskFormState | null>(null)
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null)
@@ -125,15 +123,14 @@ function App() {
       !project.archived &&
       (selectedContextId === 'all' || project.contextId === selectedContextId),
   )
-  const selectedProject =
-    selectedProjects.find((project) => project.id === selectedProjectId) ??
-    selectedProjects[0]
-  const selectedProjectTasks = selectedProject
+  const activeProject = activeProjectId
+    ? (appState.projects.find((p) => p.id === activeProjectId) ?? null)
+    : null
+  const activeProjectTasks = activeProject
     ? appState.tasks.filter(
-        (task) => !task.archived && task.projectId === selectedProject.id,
+        (task) => !task.archived && task.projectId === activeProject.id,
       )
     : []
-  const archivedTasks = appState.tasks.filter((task) => task.archived)
   const gridTasks = useMemo(
     () =>
       gridTaskIds
@@ -261,7 +258,7 @@ function App() {
         ]
 
     commitAppState({ ...appState, projects: nextProjects })
-    setSelectedProjectId(projectForm.id ?? newProjectId)
+    setActiveProjectId(projectForm.id ?? newProjectId)
     setProjectForm(null)
   }
 
@@ -282,19 +279,17 @@ function App() {
     }
 
     commitAppState(nextState)
-    setSelectedProjectId((currentProjectId) =>
-      currentProjectId === projectId ? null : currentProjectId,
-    )
+    setActiveProjectId(null)
     setProjectForm(null)
     setTaskForm(null)
   }
 
   function openAddTaskForm() {
-    if (!selectedProject) {
+    if (!activeProjectId) {
       return
     }
 
-    setTaskForm(getTaskFormState(undefined, selectedProject.id))
+    setTaskForm(getTaskFormState(undefined, activeProjectId))
   }
 
   function saveTask(event: FormEvent<HTMLFormElement>) {
@@ -336,7 +331,6 @@ function App() {
         ]
 
     commitAppState({ ...appState, tasks: nextTasks })
-    setSelectedProjectId(taskForm.projectId)
     setTaskForm(null)
   }
 
@@ -379,26 +373,6 @@ function App() {
 
     commitAppState(nextState)
     closeTaskModal()
-  }
-
-  function restoreTask(taskId: string) {
-    const taskToRestore = appState.tasks.find((task) => task.id === taskId)
-
-    if (!taskToRestore) {
-      return
-    }
-
-    const nextState = {
-      ...appState,
-      tasks: appState.tasks.map((task) =>
-        task.id === taskId
-          ? { ...task, archived: false, completedAt: null }
-          : task,
-      ),
-    }
-
-    commitAppState(nextState)
-    setSelectedProjectId(taskToRestore.projectId)
   }
 
   return (
@@ -551,7 +525,7 @@ function App() {
             </div>
           </div>
 
-          {!appState.preferences.sidebarCollapsed && projectForm ? (
+          {!appState.preferences.sidebarCollapsed && projectForm && !projectForm.id ? (
             <form className="editor-form" onSubmit={saveProject}>
               <label>
                 Project name
@@ -624,17 +598,10 @@ function App() {
 
           {!appState.preferences.sidebarCollapsed && <div className="project-list">
             {selectedProjects.map((project) => (
-              <article
-                className={
-                  project.id === selectedProject?.id
-                    ? 'project-row active'
-                    : 'project-row'
-                }
-                key={project.id}
-              >
+              <article className="project-row" key={project.id}>
                 <button
                   className="project-select"
-                  onClick={() => setSelectedProjectId(project.id)}
+                  onClick={() => setActiveProjectId(project.id)}
                   type="button"
                 >
                   <span
@@ -655,17 +622,6 @@ function App() {
                     </p>
                   </div>
                 </button>
-                <div className="row-actions">
-                  <button
-                    onClick={() => setProjectForm(getProjectFormState(project))}
-                    type="button"
-                  >
-                    Edit
-                  </button>
-                  <button onClick={() => archiveProject(project.id)} type="button">
-                    Archive
-                  </button>
-                </div>
               </article>
             ))}
           </div>}
@@ -714,202 +670,15 @@ function App() {
 
             {PLACEHOLDERS.slice(0, placeholderCount).map((placeholder) => (
               <article className="task-card placeholder-card" key={placeholder}>
-                <div>
-                  <p className="task-project">Gentle option</p>
-                  <h3>{placeholder}</h3>
+                <p className="task-project">Gentle option</p>
+                <h3>{placeholder}</h3>
+                <div className="task-meta">
+                  <span>Any time</span>
+                  <span>optional</span>
                 </div>
-                <footer>
-                  <div className="task-meta">
-                    <span>Any time</span>
-                    <span>optional</span>
-                  </div>
-                </footer>
               </article>
             ))}
           </div>
-
-          <section className="task-manager" aria-label="Project tasks">
-            <div className="task-manager-heading">
-              <div>
-                <p className="eyebrow">Manage</p>
-                <h2>{selectedProject?.name ?? 'Choose a project'}</h2>
-              </div>
-              <button
-                disabled={!selectedProject}
-                onClick={openAddTaskForm}
-                type="button"
-              >
-                Add task
-              </button>
-            </div>
-
-            {taskForm ? (
-              <form className="editor-form wide" onSubmit={saveTask}>
-                <label>
-                  Task title
-                  <input
-                    onChange={(event) =>
-                      setTaskForm({
-                        ...taskForm,
-                        title: event.target.value,
-                      })
-                    }
-                    value={taskForm.title}
-                  />
-                </label>
-
-                <label>
-                  Notes
-                  <textarea
-                    onChange={(event) =>
-                      setTaskForm({
-                        ...taskForm,
-                        notes: event.target.value,
-                      })
-                    }
-                    rows={3}
-                    value={taskForm.notes}
-                  />
-                </label>
-
-                <div className="form-grid">
-                  <label>
-                    Project
-                    <select
-                      onChange={(event) =>
-                        setTaskForm({
-                          ...taskForm,
-                          projectId: event.target.value,
-                        })
-                      }
-                      value={taskForm.projectId}
-                    >
-                      {appState.projects
-                        .filter((project) => !project.archived)
-                        .map((project) => (
-                          <option key={project.id} value={project.id}>
-                            {project.name}
-                          </option>
-                        ))}
-                    </select>
-                  </label>
-
-                  <label>
-                    Duration
-                    <select
-                      onChange={(event) =>
-                        setTaskForm({
-                          ...taskForm,
-                          durationMinutes: Number(event.target.value),
-                        })
-                      }
-                      value={taskForm.durationMinutes}
-                    >
-                      {TIME_WINDOWS.map((timeWindow) => (
-                        <option key={timeWindow} value={timeWindow}>
-                          {timeWindow} minutes
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <label>
-                    Effort
-                    <select
-                      onChange={(event) =>
-                        setTaskForm({
-                          ...taskForm,
-                          effortSize: event.target.value as EffortSize,
-                        })
-                      }
-                      value={taskForm.effortSize}
-                    >
-                      {EFFORT_OPTIONS.filter((option) => option.id !== 'any').map(
-                        (option) => (
-                          <option key={option.id} value={option.id}>
-                            {option.label}
-                          </option>
-                        ),
-                      )}
-                    </select>
-                  </label>
-                </div>
-
-                <div className="form-actions">
-                  <button type="submit">
-                    {taskForm.id ? 'Save task' : 'Create task'}
-                  </button>
-                  <button onClick={() => setTaskForm(null)} type="button">
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            ) : null}
-
-            <div className="task-list">
-              {selectedProjectTasks.map((task) => (
-                <article className="task-row" key={task.id}>
-                  <div>
-                    <h3>{task.title}</h3>
-                    <p>
-                      {task.durationMinutes} min · {task.effortSize} bite
-                    </p>
-                  </div>
-                  <div className="row-actions">
-                    <button onClick={() => completeTask(task.id)} type="button">
-                      Done
-                    </button>
-                    <button
-                      onClick={() =>
-                        setTaskForm(getTaskFormState(task, task.projectId))
-                      }
-                      type="button"
-                    >
-                      Edit
-                    </button>
-                    <button onClick={() => archiveTask(task.id)} type="button">
-                      Archive
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-
-            <section className="archive-panel" aria-label="Archived tasks">
-              <div className="archive-heading">
-                <div>
-                  <p className="eyebrow">Archive</p>
-                  <h2>Done for now</h2>
-                </div>
-                <span>{archivedTasks.length} saved</span>
-              </div>
-
-              {archivedTasks.length > 0 ? (
-                <div className="archive-list">
-                  {archivedTasks.map((task) => {
-                    const project = getProject(appState, task)
-
-                    return (
-                      <article className="archive-row" key={task.id}>
-                        <div>
-                          <h3>{task.title}</h3>
-                          <p>
-                            {project?.name ?? 'No project'} ·{' '}
-                            {task.completedAt ? 'completed' : 'archived'}
-                          </p>
-                        </div>
-                        <button onClick={() => restoreTask(task.id)} type="button">
-                          Restore
-                        </button>
-                      </article>
-                    )
-                  })}
-                </div>
-              ) : (
-                <p className="empty-note">Completed and archived tasks will land here.</p>
-              )}
-            </section>
-          </section>
         </section>
       </section>
       <footer className="app-footer">
@@ -1077,6 +846,213 @@ function App() {
                 </div>
               </>
             ) : null}
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
+      <Dialog.Root
+        open={activeProject !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setActiveProjectId(null)
+            setProjectForm(null)
+            setTaskForm(null)
+          }
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Overlay className="modal-overlay" />
+          <Dialog.Content className="modal project-modal">
+            <div className="modal-header">
+              <span
+                className="project-swatch"
+                style={{ backgroundColor: activeProject?.color }}
+                aria-hidden="true"
+              />
+              <Dialog.Title className="modal-title">
+                {activeProject?.name}
+              </Dialog.Title>
+              <Dialog.Close asChild>
+                <button aria-label="Close" className="modal-close" type="button">
+                  ✕
+                </button>
+              </Dialog.Close>
+            </div>
+
+            {activeProject && projectForm?.id === activeProject.id ? (
+              <form className="editor-form wide" onSubmit={saveProject}>
+                <label>
+                  Project name
+                  <input
+                    onChange={(event) =>
+                      setProjectForm({ ...projectForm, name: event.target.value })
+                    }
+                    value={projectForm.name}
+                  />
+                </label>
+
+                <label>
+                  Context
+                  <select
+                    onChange={(event) =>
+                      setProjectForm({
+                        ...projectForm,
+                        contextId: event.target.value as ContextId,
+                      })
+                    }
+                    value={projectForm.contextId}
+                  >
+                    {CONTEXTS.map((context) => (
+                      <option key={context.id} value={context.id}>
+                        {context.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <div>
+                  <span className="field-label">Color</span>
+                  <div className="color-options">
+                    {PROJECT_COLORS.map((color) => (
+                      <button
+                        aria-label={`Use color ${color}`}
+                        aria-pressed={projectForm.color === color}
+                        className={projectForm.color === color ? 'color-dot active' : 'color-dot'}
+                        key={color}
+                        onClick={() => setProjectForm({ ...projectForm, color })}
+                        style={{ backgroundColor: color }}
+                        type="button"
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="form-actions">
+                  <button type="submit">Save project</button>
+                  <button onClick={() => setProjectForm(null)} type="button">
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            ) : activeProject ? (
+              <div className="modal-body">
+                <div className="project-modal-actions">
+                  <button
+                    onClick={() => setProjectForm(getProjectFormState(activeProject))}
+                    type="button"
+                  >
+                    Edit project
+                  </button>
+                  <button onClick={() => archiveProject(activeProject.id)} type="button">
+                    Archive project
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
+            <section className="project-modal-tasks">
+              <div className="project-modal-tasks-heading">
+                <h3>Tasks</h3>
+                <button onClick={openAddTaskForm} type="button">
+                  Add task
+                </button>
+              </div>
+
+              {taskForm && !taskForm.id ? (
+                <form className="editor-form" onSubmit={saveTask}>
+                  <label>
+                    Task title
+                    <input
+                      onChange={(event) =>
+                        setTaskForm({ ...taskForm, title: event.target.value })
+                      }
+                      value={taskForm.title}
+                    />
+                  </label>
+
+                  <label>
+                    Notes
+                    <textarea
+                      onChange={(event) =>
+                        setTaskForm({ ...taskForm, notes: event.target.value })
+                      }
+                      rows={2}
+                      value={taskForm.notes}
+                    />
+                  </label>
+
+                  <div className="form-grid">
+                    <label>
+                      Duration
+                      <select
+                        onChange={(event) =>
+                          setTaskForm({
+                            ...taskForm,
+                            durationMinutes: Number(event.target.value),
+                          })
+                        }
+                        value={taskForm.durationMinutes}
+                      >
+                        {TIME_WINDOWS.map((timeWindow) => (
+                          <option key={timeWindow} value={timeWindow}>
+                            {timeWindow} minutes
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label>
+                      Effort
+                      <select
+                        onChange={(event) =>
+                          setTaskForm({
+                            ...taskForm,
+                            effortSize: event.target.value as EffortSize,
+                          })
+                        }
+                        value={taskForm.effortSize}
+                      >
+                        {EFFORT_OPTIONS.filter((option) => option.id !== 'any').map(
+                          (option) => (
+                            <option key={option.id} value={option.id}>
+                              {option.label}
+                            </option>
+                          ),
+                        )}
+                      </select>
+                    </label>
+                  </div>
+
+                  <div className="form-actions">
+                    <button type="submit">Create task</button>
+                    <button onClick={() => setTaskForm(null)} type="button">
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              ) : null}
+
+              {activeProjectTasks.length > 0 ? (
+                <div className="task-list">
+                  {activeProjectTasks.map((task) => (
+                    <article className="task-row" key={task.id}>
+                      <button
+                        className="task-row-select"
+                        onClick={() => openTaskModal(task.id)}
+                        type="button"
+                      >
+                        <h3>{task.title}</h3>
+                        <p>
+                          {task.durationMinutes} min · {task.effortSize} bite
+                        </p>
+                      </button>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <p className="empty-note">No active tasks. Add one above.</p>
+              )}
+            </section>
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
