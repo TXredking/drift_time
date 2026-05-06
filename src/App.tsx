@@ -1,6 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import * as Tooltip from '@radix-ui/react-tooltip'
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { version } from '../package.json'
 import './App.css'
 import { CONTEXTS } from './data/contexts'
@@ -109,6 +109,8 @@ function App() {
   const [projectForm, setProjectForm] = useState<ProjectFormState | null>(null)
   const [taskForm, setTaskForm] = useState<TaskFormState | null>(null)
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null)
+  const [showArchivedTasks, setShowArchivedTasks] = useState(false)
+  const [showArchivedProjects, setShowArchivedProjects] = useState(false)
 
   const { selectedContextId, selectedEffortSize, selectedTimeWindow } =
     appState.preferences
@@ -123,12 +125,18 @@ function App() {
       !project.archived &&
       (selectedContextId === 'all' || project.contextId === selectedContextId),
   )
+  const archivedProjects = appState.projects.filter((project) => project.archived)
   const activeProject = activeProjectId
     ? (appState.projects.find((p) => p.id === activeProjectId) ?? null)
     : null
   const activeProjectTasks = activeProject
     ? appState.tasks.filter(
         (task) => !task.archived && task.projectId === activeProject.id,
+      )
+    : []
+  const archivedProjectTasks = activeProject
+    ? appState.tasks.filter(
+        (task) => task.archived && task.projectId === activeProject.id,
       )
     : []
   const gridTasks = useMemo(
@@ -224,7 +232,7 @@ function App() {
     })
   }
 
-  function saveProject(event: FormEvent<HTMLFormElement>) {
+  function saveProject(event: { preventDefault(): void }) {
     event.preventDefault()
 
     if (!projectForm?.name.trim()) {
@@ -292,7 +300,7 @@ function App() {
     setTaskForm(getTaskFormState(undefined, activeProjectId))
   }
 
-  function saveTask(event: FormEvent<HTMLFormElement>) {
+  function saveTask(event: { preventDefault(): void }) {
     event.preventDefault()
 
     if (!taskForm?.title.trim() || !taskForm.projectId) {
@@ -373,6 +381,26 @@ function App() {
 
     commitAppState(nextState)
     closeTaskModal()
+  }
+
+  function restoreProject(projectId: string) {
+    commitAppState({
+      ...appState,
+      projects: appState.projects.map((project) =>
+        project.id === projectId ? { ...project, archived: false } : project,
+      ),
+    })
+  }
+
+  function restoreTask(taskId: string) {
+    commitAppState({
+      ...appState,
+      tasks: appState.tasks.map((task) =>
+        task.id === taskId
+          ? { ...task, archived: false, completedAt: null }
+          : task,
+      ),
+    })
   }
 
   return (
@@ -625,6 +653,39 @@ function App() {
               </article>
             ))}
           </div>}
+
+          {!appState.preferences.sidebarCollapsed && archivedProjects.length > 0 && (
+            <div className="sidebar-archive">
+              <button
+                className="archive-toggle"
+                onClick={() => setShowArchivedProjects((v) => !v)}
+                type="button"
+              >
+                {showArchivedProjects
+                  ? 'Hide archived projects'
+                  : `Show ${archivedProjects.length} archived projects`}
+              </button>
+              {showArchivedProjects && (
+                <div className="project-list">
+                  {archivedProjects.map((project) => (
+                    <article className="project-row project-row-archived" key={project.id}>
+                      <span
+                        className="project-swatch"
+                        style={{ backgroundColor: project.color }}
+                        aria-hidden="true"
+                      />
+                      <h2>{project.name}</h2>
+                      <div className="row-actions">
+                        <button onClick={() => restoreProject(project.id)} type="button">
+                          Restore
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </aside>
 
         <section className="grid-panel" aria-label="Task grid">
@@ -857,6 +918,7 @@ function App() {
             setActiveProjectId(null)
             setProjectForm(null)
             setTaskForm(null)
+            setShowArchivedTasks(false)
           }
         }}
       >
@@ -1051,6 +1113,40 @@ function App() {
                 </div>
               ) : (
                 <p className="empty-note">No active tasks. Add one above.</p>
+              )}
+
+              {archivedProjectTasks.length > 0 && (
+                <div className="project-modal-archive">
+                  <button
+                    className="archive-toggle"
+                    onClick={() => setShowArchivedTasks((v) => !v)}
+                    type="button"
+                  >
+                    {showArchivedTasks
+                      ? 'Hide done & archived'
+                      : `Show ${archivedProjectTasks.length} done & archived`}
+                  </button>
+                  {showArchivedTasks && (
+                    <div className="task-list">
+                      {archivedProjectTasks.map((task) => (
+                        <article className="task-row task-row-archived" key={task.id}>
+                          <div>
+                            <h3>{task.title}</h3>
+                            <p>
+                              {task.completedAt ? 'Completed' : 'Archived'} ·{' '}
+                              {task.durationMinutes} min · {task.effortSize} bite
+                            </p>
+                          </div>
+                          <div className="row-actions">
+                            <button onClick={() => restoreTask(task.id)} type="button">
+                              Restore
+                            </button>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
             </section>
           </Dialog.Content>

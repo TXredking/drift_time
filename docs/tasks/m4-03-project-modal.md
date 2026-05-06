@@ -2,13 +2,13 @@
 
 **Milestone:** 4  
 **PR:** 3 of 3  
-**Scope:** Large — replaces inline task manager with a modal, changes project click behavior, removes derived state
+**Scope:** Large — replaces inline task manager with a modal, moves task list and archived task section into modal, changes project click behavior, removes derived state
 
 **Prerequisite:** M4-02 must be merged first. The project modal's task list opens the task card modal introduced in that task, and `@radix-ui/react-dialog` will already be installed.
 
 ## Goal
 
-Clicking a project in the sidebar opens a modal instead of expanding the inline task manager below the grid. The modal contains the project's edit fields, archive button, active task list, and add task button. The entire `.task-manager` section is removed from the grid panel.
+Clicking a project in the sidebar opens a modal instead of expanding the inline task manager below the grid. The modal contains the project's edit fields, archive button, active task list, add task button, and a collapsible archived/completed task section with restore. The entire `.task-manager` section — including the archive panel that previously lived at its base — is removed from the grid panel and its content moves into the project modal.
 
 **Radix UI:** Uses `@radix-ui/react-dialog` (installed in M4-02) for the modal. Same benefits as the task card modal: focus trap, Escape key, ARIA, body scroll lock.
 
@@ -55,7 +55,11 @@ const selectedProjectTasks = selectedProject
   : []
 ```
 
-Add derived values for the project modal:
+Add state for the archive toggle and derived values for the project modal:
+
+```ts
+const [showArchivedTasks, setShowArchivedTasks] = useState(false)
+```
 
 ```ts
 const activeProject = activeProjectId
@@ -64,6 +68,11 @@ const activeProject = activeProjectId
 const activeProjectTasks = activeProject
   ? appState.tasks.filter(
       (task) => !task.archived && task.projectId === activeProject.id,
+    )
+  : []
+const archivedProjectTasks = activeProject
+  ? appState.tasks.filter(
+      (task) => task.archived && task.projectId === activeProject.id,
     )
   : []
 ```
@@ -136,6 +145,21 @@ function archiveProject(projectId: string) {
 function openAddTaskForm() {
   if (!activeProjectId) return
   setTaskForm(getTaskFormState(undefined, activeProjectId))
+}
+```
+
+**`restoreTask`** — re-add to reverse an archive or completion. Does not call `closeTaskModal` since restoring happens inside the project modal, not the task card modal:
+
+```ts
+function restoreTask(taskId: string) {
+  commitAppState({
+    ...appState,
+    tasks: appState.tasks.map((task) =>
+      task.id === taskId
+        ? { ...task, archived: false, completedAt: null }
+        : task,
+    ),
+  })
 }
 ```
 
@@ -221,8 +245,6 @@ Change click handler to open the modal. Remove `row-actions` (Edit and Archive m
 ### `src/App.tsx` — remove inline task manager
 
 Delete the entire `<section className="task-manager">` block from the grid panel. This block contained the task manager heading, task form, task list, and archive panel. All of this moves into the project modal.
-
-The archive panel (`archivedTasks`) will be addressed in M5 as a standalone accessible view.
 
 ### `src/App.tsx` — project modal JSX
 
@@ -433,6 +455,40 @@ Add after the task card modal Dialog (from M4-02), still inside `<Tooltip.Provid
         ) : (
           <p className="empty-note">No active tasks. Add one above.</p>
         )}
+
+        {archivedProjectTasks.length > 0 && (
+          <div className="project-modal-archive">
+            <button
+              className="archive-toggle"
+              onClick={() => setShowArchivedTasks((v) => !v)}
+              type="button"
+            >
+              {showArchivedTasks
+                ? 'Hide done & archived'
+                : `Show ${archivedProjectTasks.length} done & archived`}
+            </button>
+            {showArchivedTasks && (
+              <div className="task-list">
+                {archivedProjectTasks.map((task) => (
+                  <article className="task-row task-row-archived" key={task.id}>
+                    <div>
+                      <h3>{task.title}</h3>
+                      <p>
+                        {task.completedAt ? 'Completed' : 'Archived'} ·{' '}
+                        {task.durationMinutes} min · {task.effortSize} bite
+                      </p>
+                    </div>
+                    <div className="row-actions">
+                      <button onClick={() => restoreTask(task.id)} type="button">
+                        Restore
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </section>
     </Dialog.Content>
   </Dialog.Portal>
@@ -441,7 +497,7 @@ Add after the task card modal Dialog (from M4-02), still inside `<Tooltip.Provid
 
 ### `src/App.css`
 
-The project modal shares `.modal-overlay` and `.modal` styles from M4-02. Add project-modal-specific rules:
+The project modal shares `.modal-overlay` and `.modal` styles from M4-02. Add project-modal-specific rules. Also add `.project-modal-archive button` to the shared button border/radius selector so the Restore button inherits consistent styling:
 
 ```css
 .project-modal {
@@ -494,6 +550,40 @@ The project modal shares `.modal-overlay` and `.modal` styles from M4-02. Add pr
 .task-row-select:hover h3 {
   text-decoration: underline;
 }
+
+.project-modal-archive {
+  border-top: 1px solid var(--border);
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+}
+
+.archive-toggle {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0;
+}
+
+.archive-toggle:hover {
+  color: var(--ink);
+}
+
+.task-row.task-row-archived {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr auto;
+  overflow: visible;
+  padding: 8px 12px;
+}
+
+.task-row.task-row-archived h3 {
+  opacity: 0.6;
+}
 ```
 
 ---
@@ -506,6 +596,9 @@ The project modal shares `.modal-overlay` and `.modal` styles from M4-02. Add pr
 - Archive project button archives the project and closes the modal.
 - Active tasks for the project are listed; clicking a task opens the task card modal (from M4-02).
 - Add task button shows the new-task form inside the project modal; saving adds the task to the list.
+- Archived and completed tasks for the project are accessible via a "Show N archived" toggle at the base of the task section.
+- Each archived task shows its status (Completed vs Archived) and a Restore button; restoring moves it back to the active list.
+- Closing the project modal resets the archive toggle to hidden.
 - Pressing Escape closes the project modal.
 - Clicking the overlay backdrop closes the project modal.
 - Focus is trapped inside the project modal while it is open.
