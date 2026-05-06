@@ -347,115 +347,63 @@ Implementation details:
 
 ## Milestones
 
-### Milestone 1: Running Shell
+### Milestone 1: Running Shell [DONE]
 
 - Scaffold Vite React TypeScript app.
-- Add base layout.
-- Add fixed contexts.
-- Add seeded state.
-- Render a static 3x3 grid.
+- Add types, constants, seed data, and storage.
+- Add base layout with context tabs, effort selector, and time window selector.
+- Render a 3x3 grid of seeded task cards.
 
 Acceptance:
 
 - `npm run dev` starts the app.
 - The browser shows a recognizable DriftTime workspace with seeded task cards.
 
-### Milestone 1.5: UX Design Revision
+### Milestone 2: Filtering, Shuffle, and Persistence [DONE]
 
-Design decisions locked in after initial beta feedback. These changes affect how subsequent milestones are implemented — review before starting M2.
-
-**Time windows revised:**
-
-- Remove 90 and 120 minutes from `TIME_WINDOWS`.
-- Correct constant: `[5, 15, 30, 45, 60]`.
-
-**Sidebar collapsible:**
-
-- The left project sidebar must be collapsible.
-- Add `sidebarCollapsed: boolean` to the `Preferences` type so collapse state persists across sessions.
-- A toggle control (chevron or icon button) collapses the sidebar to a narrow rail or hides it entirely.
-- Collapsed state does not affect context, grid, or any other preference.
-
-**Modal-first management pattern:**
-
-- Clicking a project in the sidebar opens a project modal — not an inline panel or below-fold section.
-- The project modal contains: project name/color edit, archive button, active task list, add task button.
-- Each task in the project modal list is clickable and opens the task card modal.
-- Clicking a task card in the grid also opens the task card modal.
-- The task card modal opens in read mode and exposes: Edit (switches to edit mode), Done, Archive.
-
-**Archive vs Done distinction:**
-
-- Done: sets `archived: true` and `completedAt` to current timestamp.
-- Archive: sets `archived: true`, leaves `completedAt` null.
-- A tooltip on the Archive button reads: "Archive removes this task from your active list without marking it complete."
-
-**No recurring tasks:**
-
-- Do not implement recurring tasks in any milestone. See spec for rationale.
-
-Acceptance:
-
-- `TIME_WINDOWS` constant matches `[5, 15, 30, 45, 60]`.
-- `Preferences` type includes `sidebarCollapsed`.
-- Design pattern is agreed and reflected in component plan before M2 begins.
-
-### Milestone 2: Filtering And Shuffle
-
-- Add context, effort, and time controls.
-- Implement eligible task filtering.
-- Implement reshuffle.
-- Add placeholders for empty slots.
+- Implement eligible task filtering by context, effort, and time window.
+- Implement reshuffle with anti-repeat logic (`lastShownAt`).
+- Add placeholders for empty grid slots.
+- Add localStorage load/save; persist preferences, projects, tasks, and pinned ids.
 
 Acceptance:
 
 - Controls change the grid.
 - Reshuffle returns a new bounded set of eligible tasks.
 - Empty space is filled with supportive placeholders.
-
-### Milestone 3: Persistence
-
-- Add localStorage load/save.
-- Persist preferences, projects, tasks, and pinned ids.
-- Persist `sidebarCollapsed` in preferences.
-
-Acceptance:
-
 - Refreshing the browser keeps data and preferences.
-- Sidebar collapsed/expanded state survives a refresh.
 
-### Milestone 4: Project And Task CRUD
+### Milestone 3: Project and Task Management [DONE]
 
-- Build collapsible project sidebar with toggle control.
-- Build project modal (name/color edit, archive, task list, add task).
-- Build task card modal (read mode → edit mode, Done button, Archive button with tooltip).
-- Edit and archive projects/tasks through their respective modals.
-- Show archived task view.
+- Inline project sidebar with add/edit/archive actions.
+- Task list per project with add/edit/archive/complete actions.
+- Done: sets `archived: true` and `completedAt` to current timestamp.
+- Archive: sets `archived: true`, leaves `completedAt` null.
+- Archive panel showing completed and archived tasks, with restore.
 
 Acceptance:
 
-- Clicking a project in the sidebar opens the project modal, not an inline panel.
-- Clicking a task card in the grid opens the task card modal.
-- Tasks are also accessible from the task list inside the project modal.
-- Done and Archive produce distinct outcomes (completedAt set vs null).
-- Tooltip is visible on the Archive button.
 - User can create a new project and task, then see the task appear when filters match.
+- Done and Archive produce distinct outcomes (`completedAt` set vs null).
+- Completed and archived tasks appear in the archive panel with a restore button.
 
-### Milestone 5: Complete And Pin
+### Milestone 4: Modal-First UX and Sidebar Collapse [CURRENT]
 
-- Wire Done and Archive actions in the task card modal.
-- Add pin/unpin toggle on task cards (visible on hover).
-- Ensure completed tasks leave the active grid and appear in the archive view.
-- Ensure archived-without-completion tasks also leave the active grid.
-- Ensure pinned tasks survive reshuffle while still eligible.
+The current inline sidebar management pattern predates a UX decision made during beta. These are the remaining V1 features:
+
+- **Collapsible sidebar**: Add a toggle control (chevron or icon button) that collapses the sidebar to a narrow rail or hides it entirely. Add `sidebarCollapsed: boolean` to `Preferences` and persist it across sessions. Collapsing does not affect context, grid, or any other preference.
+- **Task card modal**: Clicking a task card in the grid opens a modal in read mode showing full title and notes. The modal contains: Edit (switches to edit mode), Done, Archive with tooltip ("Archive removes this task from your active list without marking it complete.").
+- **Project modal**: Clicking a project in the sidebar opens a project modal — not the current inline panel. The modal contains: project name/color edit, archive project button, active task list (each task clickable to open the task card modal), add task button.
 
 Acceptance:
 
-- Done task disappears from active grid and is visible in archive with a completion timestamp.
-- Archived task disappears from active grid and is visible in archive without a completion timestamp.
-- Pinned task remains during reshuffle.
+- Sidebar toggle collapses and expands; collapsed state survives a refresh.
+- Clicking a task card in the grid opens the task card modal.
+- Clicking a project in the sidebar opens the project modal, not an inline panel.
+- Tasks are accessible from both the grid card modal and the project modal task list.
+- Archive tooltip is visible on the Archive button.
 
-### Milestone 6: Export, Import, Polish
+### Milestone 5: Export, Import, and Polish
 
 - Add `exportAppState` to `storage.ts` — serializes state to JSON and triggers a browser file download.
 - Add `parseImportedAppState` to `storage.ts` — parses and validates JSON, returns `null` on failure.
@@ -485,8 +433,6 @@ Manual test V1 with these scenarios:
 - Filter by each time window.
 - Complete a task.
 - Restore or view an archived task.
-- Pin a task and reshuffle.
-- Change filters so a pinned task becomes ineligible.
 - Delete/archive a project that has active tasks.
 - Export JSON.
 - Import valid JSON.
@@ -521,9 +467,8 @@ Do not implement these during V1 unless the spec changes:
 5. Add localStorage persistence.
 6. Add project and task forms.
 7. Add complete/archive behavior.
-8. Add pinning.
-9. Add import/export.
-10. Polish styling, accessibility, and reduced motion.
+8. Add import/export.
+9. Polish styling, accessibility, and reduced motion.
 
 Keep each step working before moving to the next. DriftTime should stay small enough that the whole app can be understood by reading the `src` folder.
 
@@ -535,7 +480,7 @@ Share a working build with non-technical testers via a stable URL, with no local
 
 ### Prerequisites
 
-- Milestone 6 complete (export/import implemented and tested locally).
+- Milestone 5 complete (export/import implemented and tested locally).
 - `npm run build` produces a clean `dist/` folder with no TypeScript or lint errors.
 
 ### Deploy method: Netlify drag-and-drop

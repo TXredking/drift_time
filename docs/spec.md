@@ -145,14 +145,6 @@ Supportive placeholders may include:
 - Clear 5 items from a surface
 - Rest is allowed
 
-## Pinning
-
-V1 should support simple pinning:
-
-- A user can pin a task card.
-- Pinned tasks remain on the grid during reshuffle if they still match the current filters.
-- V1 does not need drag-and-drop pinning.
-
 ## Shuffle Behavior
 
 The app should use guided randomness rather than pure randomness.
@@ -166,8 +158,6 @@ Baseline V1 eligibility:
 
 Recommended V1 selection:
 
-- Preserve currently pinned eligible tasks.
-- Shuffle unpinned eligible tasks.
 - Prefer tasks that have not appeared recently when possible.
 - Fill up to 9 slots.
 - Fill remaining slots with placeholders.
@@ -301,6 +291,7 @@ If a user requests recurring tasks, the appropriate response is to help them bre
 
 These are possible later, but should not block V1:
 
+- Task pinning — hold a card in place across reshuffles while it still matches filters.
 - On-demand "break this down" suggestions.
 - Import/export improvements.
 - Task exposure history to identify avoided tasks.
