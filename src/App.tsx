@@ -1,3 +1,5 @@
+import * as Dialog from '@radix-ui/react-dialog'
+import * as Tooltip from '@radix-ui/react-tooltip'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { version } from '../package.json'
 import './App.css'
@@ -108,6 +110,7 @@ function App() {
   )
   const [projectForm, setProjectForm] = useState<ProjectFormState | null>(null)
   const [taskForm, setTaskForm] = useState<TaskFormState | null>(null)
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(null)
 
   const { selectedContextId, selectedEffortSize, selectedTimeWindow } =
     appState.preferences
@@ -139,6 +142,20 @@ function App() {
     [appState.tasks, gridTaskIds],
   )
   const placeholderCount = Math.max(0, 9 - gridTasks.length)
+  const activeTask = activeTaskId
+    ? (appState.tasks.find((task) => task.id === activeTaskId) ?? null)
+    : null
+  const activeTaskProject = activeTask ? getProject(appState, activeTask) : null
+
+  function openTaskModal(taskId: string) {
+    setActiveTaskId(taskId)
+    setTaskForm(null)
+  }
+
+  function closeTaskModal() {
+    setActiveTaskId(null)
+    setTaskForm(null)
+  }
 
   function updatePreference(
     preference:
@@ -341,9 +358,7 @@ function App() {
     }
 
     commitAppState(nextState)
-    setTaskForm((currentTaskForm) =>
-      currentTaskForm?.id === taskId ? null : currentTaskForm,
-    )
+    closeTaskModal()
   }
 
   function archiveTask(taskId: string) {
@@ -363,9 +378,7 @@ function App() {
     }
 
     commitAppState(nextState)
-    setTaskForm((currentTaskForm) =>
-      currentTaskForm?.id === taskId ? null : currentTaskForm,
-    )
+    closeTaskModal()
   }
 
   function restoreTask(taskId: string) {
@@ -389,6 +402,7 @@ function App() {
   }
 
   return (
+    <Tooltip.Provider delayDuration={400}>
     <main className="app-shell">
       <header className="top-bar">
         <div>
@@ -680,19 +694,20 @@ function App() {
                   key={task.id}
                   style={{ borderTopColor: project?.color }}
                 >
-                  <div>
-                    <p className="task-project">{project?.name}</p>
-                    <h3>{task.title}</h3>
-                  </div>
-                  <footer>
+                  <button
+                    className="task-card-body"
+                    onClick={() => openTaskModal(task.id)}
+                    type="button"
+                  >
+                    <div>
+                      <p className="task-project">{project?.name}</p>
+                      <h3>{task.title}</h3>
+                    </div>
                     <div className="task-meta">
                       <span>{task.durationMinutes} min</span>
                       <span>{task.effortSize} bite</span>
                     </div>
-                    <button onClick={() => completeTask(task.id)} type="button">
-                      Done
-                    </button>
-                  </footer>
+                  </button>
                 </article>
               )
             })}
@@ -900,7 +915,173 @@ function App() {
       <footer className="app-footer">
         <span>v{version}</span>
       </footer>
+
+      <Dialog.Root
+        open={activeTask !== null}
+        onOpenChange={(open) => { if (!open) closeTaskModal() }}
+      >
+        <Dialog.Portal>
+          <Dialog.Overlay className="modal-overlay" />
+          <Dialog.Content className="modal">
+            <div className="modal-header">
+              <div
+                className="modal-color-stripe"
+                style={{ backgroundColor: activeTaskProject?.color }}
+                aria-hidden="true"
+              />
+              <p className="task-project">{activeTaskProject?.name}</p>
+              <Dialog.Close asChild>
+                <button aria-label="Close" className="modal-close" type="button">
+                  ✕
+                </button>
+              </Dialog.Close>
+            </div>
+
+            {activeTask && taskForm?.id === activeTask.id ? (
+              <>
+                <Dialog.Title className="sr-only">Edit task</Dialog.Title>
+                <form className="editor-form wide" onSubmit={saveTask}>
+                  <label>
+                    Task title
+                    <input
+                      onChange={(event) =>
+                        setTaskForm({ ...taskForm, title: event.target.value })
+                      }
+                      value={taskForm.title}
+                    />
+                  </label>
+
+                  <label>
+                    Notes
+                    <textarea
+                      onChange={(event) =>
+                        setTaskForm({ ...taskForm, notes: event.target.value })
+                      }
+                      rows={3}
+                      value={taskForm.notes}
+                    />
+                  </label>
+
+                  <div className="form-grid">
+                    <label>
+                      Project
+                      <select
+                        onChange={(event) =>
+                          setTaskForm({ ...taskForm, projectId: event.target.value })
+                        }
+                        value={taskForm.projectId}
+                      >
+                        {appState.projects
+                          .filter((project) => !project.archived)
+                          .map((project) => (
+                            <option key={project.id} value={project.id}>
+                              {project.name}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+
+                    <label>
+                      Duration
+                      <select
+                        onChange={(event) =>
+                          setTaskForm({
+                            ...taskForm,
+                            durationMinutes: Number(event.target.value),
+                          })
+                        }
+                        value={taskForm.durationMinutes}
+                      >
+                        {TIME_WINDOWS.map((timeWindow) => (
+                          <option key={timeWindow} value={timeWindow}>
+                            {timeWindow} minutes
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label>
+                      Effort
+                      <select
+                        onChange={(event) =>
+                          setTaskForm({
+                            ...taskForm,
+                            effortSize: event.target.value as EffortSize,
+                          })
+                        }
+                        value={taskForm.effortSize}
+                      >
+                        {EFFORT_OPTIONS.filter((option) => option.id !== 'any').map(
+                          (option) => (
+                            <option key={option.id} value={option.id}>
+                              {option.label}
+                            </option>
+                          ),
+                        )}
+                      </select>
+                    </label>
+                  </div>
+
+                  <div className="form-actions">
+                    <button type="submit">Save task</button>
+                    <button onClick={() => setTaskForm(null)} type="button">
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </>
+            ) : activeTask ? (
+              <>
+                <div className="modal-body">
+                  <Dialog.Title className="modal-task-title">
+                    {activeTask.title}
+                  </Dialog.Title>
+                  {activeTask.notes && (
+                    <p className="task-notes">{activeTask.notes}</p>
+                  )}
+                  <p className="task-meta">
+                    <span>{activeTask.durationMinutes} min</span>
+                    <span>{activeTask.effortSize} bite</span>
+                  </p>
+                </div>
+
+                <div className="modal-actions">
+                  <button
+                    onClick={() =>
+                      setTaskForm(getTaskFormState(activeTask, activeTask.projectId))
+                    }
+                    type="button"
+                  >
+                    Edit
+                  </button>
+                  <button onClick={() => completeTask(activeTask.id)} type="button">
+                    Done
+                  </button>
+                  <Tooltip.Root>
+                    <Tooltip.Trigger asChild>
+                      <button
+                        onClick={() => archiveTask(activeTask.id)}
+                        type="button"
+                      >
+                        Archive
+                      </button>
+                    </Tooltip.Trigger>
+                    <Tooltip.Portal>
+                      <Tooltip.Content className="tooltip-content" sideOffset={6}>
+                        Archive removes this task from your active list without
+                        marking it complete.
+                        <Tooltip.Arrow className="tooltip-arrow" />
+                      </Tooltip.Content>
+                    </Tooltip.Portal>
+                  </Tooltip.Root>
+                </div>
+              </>
+            ) : null}
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </main>
+    </Tooltip.Provider>
   )
 }
 

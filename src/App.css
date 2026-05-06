@@ -47,7 +47,7 @@
 .task-manager-heading button,
 .form-actions button,
 .row-actions button,
-.task-card footer button,
+.modal-actions button,
 .archive-row button,
 .context-pill {
   border: 1px solid var(--border);
@@ -328,11 +328,27 @@
   border-top: 8px solid;
   box-shadow: 0 16px 34px rgba(28, 43, 43, 0.08);
   display: flex;
+  min-height: 152px;
+  overflow: hidden;
+}
+
+.task-card:hover {
+  box-shadow: 0 4px 16px rgba(28, 43, 43, 0.15);
+  cursor: pointer;
+}
+
+.task-card-body {
+  display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 152px;
+  flex: 1;
   padding: 16px;
   text-align: left;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
 }
 
 .task-project {
@@ -350,29 +366,14 @@
   margin: 0;
 }
 
-.task-card footer {
+.task-meta {
   align-items: center;
   color: var(--muted);
   display: flex;
   font-size: 0.86rem;
   font-weight: 700;
   gap: 8px;
-  justify-content: space-between;
   text-transform: capitalize;
-}
-
-.task-meta {
-  display: flex;
-  gap: 8px;
-}
-
-.task-card footer button {
-  background: #dff0ea;
-  color: var(--ink);
-  font-size: 0.82rem;
-  font-weight: 800;
-  min-height: 32px;
-  padding: 0 10px;
 }
 
 .placeholder-card {
@@ -581,7 +582,147 @@
   padding: 0 10px;
 }
 
-button:hover {
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 100;
+}
+
+.modal-overlay[data-state='open'] {
+  animation: overlay-in 0.12s ease;
+}
+
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-overlay[data-state='open'] {
+    animation: none;
+  }
+}
+
+.modal {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 8px 40px rgba(28, 43, 43, 0.18);
+  display: flex;
+  flex-direction: column;
+  left: 50%;
+  max-height: 85vh;
+  overflow-y: auto;
+  position: fixed;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(480px, 90vw);
+  z-index: 101;
+}
+
+.modal-header {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  padding: 16px 16px 0;
+}
+
+.modal-color-stripe {
+  border-radius: 2px;
+  flex-shrink: 0;
+  height: 1.25rem;
+  width: 4px;
+}
+
+.modal-header .task-project {
+  flex: 1;
+  margin: 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 4px;
+}
+
+.modal-close:hover {
+  color: var(--ink);
+}
+
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+}
+
+.modal-task-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.task-notes {
+  color: var(--muted);
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 16px;
+}
+
+.modal-actions button {
+  background: white;
+  color: var(--ink);
+  font-size: 0.84rem;
+  font-weight: 700;
+  min-height: 36px;
+  padding: 0 12px;
+}
+
+.modal-actions button:first-child {
+  background: var(--ink);
+  color: white;
+}
+
+/* Tooltip */
+.tooltip-content {
+  background: var(--ink);
+  border-radius: 6px;
+  color: white;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  max-width: 220px;
+  padding: 6px 10px;
+  z-index: 200;
+}
+
+.tooltip-arrow {
+  fill: var(--ink);
+}
+
+/* Screen-reader only */
+.sr-only {
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  width: 1px;
+}
+
+button:hover:not(.task-card-body):not(.modal-close):not(.sidebar-toggle) {
   transform: translateY(-1px);
 }
 
