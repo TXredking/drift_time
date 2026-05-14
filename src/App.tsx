@@ -1,6 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import * as Tooltip from '@radix-ui/react-tooltip'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { version } from '../package.json'
 import './App.css'
 import { CONTEXTS } from './data/contexts'
@@ -12,7 +12,7 @@ import {
 } from './lib/constants'
 import { createId } from './lib/ids'
 import { createGridTaskIds, markTasksShown } from './lib/shuffle'
-import { loadAppState, saveAppState } from './lib/storage'
+import { exportAppState, loadAppState, parseImportedAppState, saveAppState } from './lib/storage'
 import type {
   AppState,
   ContextId,
@@ -111,6 +111,8 @@ function App() {
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null)
   const [showArchivedTasks, setShowArchivedTasks] = useState(false)
   const [showArchivedProjects, setShowArchivedProjects] = useState(false)
+  const [importError, setImportError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { selectedContextId, selectedEffortSize, selectedTimeWindow } =
     appState.preferences
@@ -401,6 +403,38 @@ function App() {
           : task,
       ),
     })
+  }
+
+  function handleImportFile(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result
+      if (typeof result !== 'string') return
+
+      const parsed = parseImportedAppState(result)
+      if (!parsed) {
+        setImportError("That file doesn't look like a valid DriftTime backup.")
+        if (fileInputRef.current) fileInputRef.current.value = ''
+        return
+      }
+
+      const confirmed = window.confirm(
+        'This will replace all your current data. Continue?',
+      )
+      if (!confirmed) {
+        if (fileInputRef.current) fileInputRef.current.value = ''
+        return
+      }
+
+      saveAppState(parsed)
+      commitAppState(parsed)
+      setImportError(null)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+    reader.readAsText(file)
   }
 
   return (
@@ -743,6 +777,28 @@ function App() {
         </section>
       </section>
       <footer className="app-footer">
+        <div className="import-export">
+          <button onClick={() => exportAppState(appState)} type="button">
+            Export backup
+          </button>
+          <button onClick={() => fileInputRef.current?.click()} type="button">
+            Import backup
+          </button>
+          <input
+            accept=".json"
+            aria-hidden="true"
+            className="file-input-hidden"
+            onChange={handleImportFile}
+            ref={fileInputRef}
+            tabIndex={-1}
+            type="file"
+          />
+          {importError && (
+            <p className="import-error" role="alert">
+              {importError}
+            </p>
+          )}
+        </div>
         <span>v{version}</span>
       </footer>
 

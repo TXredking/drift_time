@@ -4,12 +4,35 @@
 }
 
 .app-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-top: 48px;
   padding-top: 12px;
   border-top: 1px solid var(--color-border, #e5e5e5);
-  text-align: right;
   font-size: 0.75rem;
   color: var(--color-text-muted, #999);
+}
+
+.import-export {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.file-input-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.import-error {
+  color: var(--color-error, #c0392b);
+  font-size: 0.85rem;
+  margin: 0;
 }
 
 .top-bar {
@@ -49,6 +72,7 @@
 .modal-actions button,
 .project-modal-actions button,
 .project-modal-tasks-heading button,
+.import-export button,
 .context-pill {
   border: 1px solid var(--border);
   border-radius: 8px;
