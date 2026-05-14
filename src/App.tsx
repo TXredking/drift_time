@@ -458,7 +458,7 @@ function App() {
             onClick={reshuffleTasks}
             type="button"
           >
-            Reshuffle
+            Shuffle
           </button>
         </div>
       </header>
@@ -663,7 +663,14 @@ function App() {
           ) : null}
 
           {!appState.preferences.sidebarCollapsed && <div className="project-list">
-            {selectedProjects.map((project) => (
+            {selectedProjects.length === 0 ? (
+              <p className="empty-note">
+                No projects here yet.{' '}
+                <button className="inline-link" onClick={openAddProjectForm} type="button">
+                  Add one.
+                </button>
+              </p>
+            ) : selectedProjects.map((project) => (
               <article className="project-row" key={project.id}>
                 <button
                   className="project-select"
@@ -730,14 +737,23 @@ function App() {
           <div className="grid-heading">
             <div>
               <p className="eyebrow">Today</p>
-              <h2>{getEffortLabel(selectedEffortSize)} tasks that fit now</h2>
+              <h2>What you could do now</h2>
             </div>
             <p>
-              Showing {selectedContextLabel?.toLowerCase()} tasks for{' '}
-              {getEffortLabel(selectedEffortSize)?.toLowerCase()} and{' '}
-              {getTimeWindowLabel(selectedTimeWindow)}.
+              {selectedContextLabel} · {getEffortLabel(selectedEffortSize)} ·{' '}
+              {getTimeWindowLabel(selectedTimeWindow)}
             </p>
           </div>
+
+          {gridTasks.length === 0 && (
+            <p className="empty-grid-message">
+              No tasks match your current filters.{' '}
+              <button className="inline-link" onClick={resetFilters} type="button">
+                Reset filters
+              </button>{' '}
+              or add tasks to a project.
+            </p>
+          )}
 
           <div className="task-grid">
             {gridTasks.map((task) => {
@@ -769,7 +785,7 @@ function App() {
 
             {PLACEHOLDERS.slice(0, placeholderCount).map((placeholder, i) => (
               <article className="task-card placeholder-card" key={`placeholder-${i}-${gridGeneration}`}>
-                <p className="task-project">Gentle option</p>
+                <p className="task-project">Suggested</p>
                 <h3>{placeholder}</h3>
                 <div className="task-meta">
                   <span>Any time</span>

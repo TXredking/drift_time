@@ -403,7 +403,7 @@ Acceptance:
 - Tasks are accessible from both the grid card modal and the project modal task list.
 - Archive tooltip is visible on the Archive button.
 
-### Milestone 5: Export, Import, and Polish [CURRENT]
+### Milestone 5: Export, Import, and Polish [DONE]
 
 - Add `exportAppState` to `storage.ts` — serializes state to JSON and triggers a browser file download.
 - Add `parseImportedAppState` to `storage.ts` — parses and validates JSON, returns `null` on failure.

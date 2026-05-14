@@ -1,6 +1,6 @@
 import type { EffortFilter, Preferences } from '../types/app'
 
-export const TIME_WINDOWS = [5, 15, 30, 45, 60, 90, 120] as const
+export const TIME_WINDOWS = [5, 15, 30, 45, 60] as const
 
 export const EFFORT_OPTIONS: Array<{ id: EffortFilter; label: string }> = [
   { id: 'any', label: 'Any Bite' },
