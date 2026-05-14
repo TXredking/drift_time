@@ -105,6 +105,7 @@ function App() {
     markTasksShown(initialState, initialGridTaskIds),
   )
   const [gridTaskIds, setGridTaskIds] = useState<string[]>(initialGridTaskIds)
+  const [gridGeneration, setGridGeneration] = useState(0)
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
   const [projectForm, setProjectForm] = useState<ProjectFormState | null>(null)
   const [taskForm, setTaskForm] = useState<TaskFormState | null>(null)
@@ -181,6 +182,7 @@ function App() {
       const nextGridState = getGridState(nextState)
 
       setGridTaskIds(nextGridState.gridTaskIds)
+      setGridGeneration((g) => g + 1)
 
       return nextGridState.state
     })
@@ -191,6 +193,7 @@ function App() {
       const nextGridState = getGridState(currentState)
 
       setGridTaskIds(nextGridState.gridTaskIds)
+      setGridGeneration((g) => g + 1)
 
       return nextGridState.state
     })
@@ -215,6 +218,7 @@ function App() {
       const nextGridState = getGridState(nextState)
 
       setGridTaskIds(nextGridState.gridTaskIds)
+      setGridGeneration((g) => g + 1)
 
       return nextGridState.state
     })
@@ -742,7 +746,7 @@ function App() {
               return (
                 <article
                   className="task-card"
-                  key={task.id}
+                  key={`${task.id}-${gridGeneration}`}
                   style={{ borderTopColor: project?.color }}
                 >
                   <button
@@ -763,8 +767,8 @@ function App() {
               )
             })}
 
-            {PLACEHOLDERS.slice(0, placeholderCount).map((placeholder) => (
-              <article className="task-card placeholder-card" key={placeholder}>
+            {PLACEHOLDERS.slice(0, placeholderCount).map((placeholder, i) => (
+              <article className="task-card placeholder-card" key={`placeholder-${i}-${gridGeneration}`}>
                 <p className="task-project">Gentle option</p>
                 <h3>{placeholder}</h3>
                 <div className="task-meta">
